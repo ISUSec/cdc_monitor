@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<style>
+table,th,td
+{
+border:1px solid black;
+}
+img
+{
+  width: 30px;
+  height: 30px;
+}
+</style>
+<title>Team {{ team }}</title>
+<div>
+  <h1>Team {{ team }}</h1>
+  
+  <div>
+    <TABLE>
+      <TR>
+        <TD>Status</TD>
+        <TD>Service Name</TD>
+        <TD>Time Elapsed</TD>
+      </TR>
+      {% for check in checks %}
+        <TR>
+          {% if check[1] %}
+            <TD><img src="/positive.png" alt="positive"></TD>
+          {% else %}
+            <TD><img src="/negative.png" alt="positive"></TD>
+          {% endif %}
+          <TD>{{ check[0] }}</TD>
+          <TD>{{ check[2] }}</TD>
+        </TR>
+      {% endfor %}
+    </TABLE>
+  </div>
+</div>
+</html>
