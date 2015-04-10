@@ -23,4 +23,4 @@ if (not cur.fetchone()[0]):
 
 conn.commit()
 cur.close()
-conn.close()  
+conn.close()
