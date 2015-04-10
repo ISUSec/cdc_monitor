@@ -1,5 +1,5 @@
 #! /usr/bin/env python
- 
+
 from urllib2 import urlopen
 import socket
 from sys import argv
@@ -10,6 +10,8 @@ import time
 from threading import Thread
 import datetime
 import psycopg2
+import libsonic
+from mcstatus import MinecraftServer
 
 def tcp_test(server_info):
     cpos = server_info.find(':')
@@ -21,48 +23,51 @@ def tcp_test(server_info):
         return True
     except:
         return False
- 
-def http_test(server_info):
+
+def http_test(server_info, flag):
     try:
         socket.setdefaulttimeout(1)
         data = urlopen(server_info, timeout=1).read()
-        return True
+        if flag in data:
+            return True
+        else:
+            return False
     except:
         #print(e)
         return False
- 
+
 def buildDNSQuery(host):
     packet=struct.pack("!HHHHHH", 0x0001, 0x0100, 1, 0, 0, 0)
-    
+
     for name in host:
         query=struct.pack("!b"+str(len(name))+"s", len(name), name)
         packet=packet+query
-    
+
     packet=packet+struct.pack("!bHH",0,1,1)
-    
+
     return packet
- 
+
 # just ask for www.google.com
 TEST_QUERY=buildDNSQuery(["www","google","com"])
 TIMEOUT=2
- 
+
 # scan a server for DNS
 def dns_test(server_info):
     cpos = server_info.find(':')
     s=socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
     s.settimeout(TIMEOUT)
-    
+
     # send DNS question to server
     sendcount=s.sendto(TEST_QUERY, 0, (server_info[:cpos], int(server_info[cpos+1:])))
     if sendcount <= 0:
         return False
-        
+
     # wait for response
     try:
         recvdata=s.recvfrom(1024)
     except socket.error, e:
         return False
-            
+
     return True
 
 def ftp_test(server_info):
@@ -76,39 +81,26 @@ def ftp_test(server_info):
 
     return True
 
-def long_term_monitoring(test_type, server_info, team_num, service_name):
-    if test_type.lower() == 'tcp':
-        check = tcp_test
-    elif test_type.lower() == 'http':
-        check = http_test
-    elif test_type.lower() == 'dns':
-        check = dns_test
-    elif test_type.lower() == 'ftp':
-        check = ftp_test
-    else:
-        print("%s is not a service type." % (test_type))
+def subsonic_test(server_info, username, password, artist):
+    try:
+        conn = libsonic.Connection(server_info, username, password)
+        test_str = conn.getArtists().__str__()
+        if artist in test_str:
+            return True
+        else:
+            return False
+    except Exception as e:
+        print e
         return False
 
-    import psycopg2
-    conn = psycopg2.connect("dbname='monitor'")
-    cur = conn.cursor()
-
-    i = 0
-    while(i < 3):
-        time.sleep(random.randint(15,45))
-        if (check(server_info)):
-            print('Team %d - %s - Connected to %s %s.' % (team_num, service_name, test_type, server_info))
-            cur.execute("INSERT INTO events (team_num, check_name, passed, time) VALUES (%s, %s, %s, %s)", (team_num, service_name, True, datetime.datetime.now()))
-            conn.commit()
-        else: 
-            print('Team %d - %s - Unable to connect to the service %s %s.' % (team_num, service_name, test_type, server_info))
-            cur.execute("INSERT INTO events (team_num, check_name, passed, time) VALUES (%s, %s, %s, %s)", (team_num, service_name, False, datetime.datetime.now()))
-            conn.commit()
-        i += 1
-
-    cur.close()
-    conn.close()  
-
+def minecraft_test(server_info):
+    try:
+        server = MinecraftServer.lookup(server_info)
+        server.ping()
+        return True
+    except Exception as e:
+        print e
+        return False
 
 def team_check(team_num):
     Thread(target = long_term_monitoring, args = ("http", "http://www.google.com:8080", team_num, "UBUNTU WEB")).start()
@@ -143,7 +135,7 @@ if __name__ == '__main__':
 
     conn.commit()
     cur.close()
-    conn.close()  
+    conn.close()
     team_check(1)
     #team_check(2)
 
