@@ -11,7 +11,7 @@ import datetime
 import psycopg2
 import libsonic
 from mcstatus import MinecraftServer
-
+import spur
 
 def tcp_test(server_info):
     cpos = server_info.find(':')
@@ -24,7 +24,7 @@ def tcp_test(server_info):
     except:
         return False
 
-def http_test(server_info, flag):
+def http_test(server_info, (flag)):
     try:
         socket.setdefaulttimeout(1)
         data = urlopen(server_info, timeout=1).read()
@@ -72,12 +72,17 @@ def dns_test(server_info):
     return True
 
 
-def ftp_test(server_info):
-    cpos = server_info.find(':')
+def ftp_test(server_info, (flag)):
+    ftp = FTP(server_info)
 
-    ftp = FTP()
     try:
-        ftp.connect(server_info[:cpos],int(server_info[cpos+1:]), 2)
+        ftp.login()
+        ls = []
+        ftp.retrlines('LIST', ls.append)
+        for line in ls:
+            if flag in line:
+                return True
+        return False
     except Exception as e:
         print e
         return False
@@ -106,7 +111,20 @@ def minecraft_test(server_info):
         print e
         return False
 
-def long_term_monitoring(test_type, server_info, team_num, service_name):
+def ssh_test(server_info, (username, password, flag, file_name)):
+    try:
+        shell = spur.SshShell(server_info, username, password, missing_host_key=spur.ssh.MissingHostKey.accept)
+        with shell:
+            result = shell.run(['cat', '-n', file_name])
+        if flag in result.output:
+            return True
+        else:
+            return False
+    except Exception as e:
+        print e
+        return False
+
+def long_term_monitoring(test_type, test_args, server_info, team_num, service_name):
     if test_type.lower() == 'tcp':
         check = tcp_test
     elif test_type.lower() == 'http':
@@ -115,30 +133,42 @@ def long_term_monitoring(test_type, server_info, team_num, service_name):
         check = dns_test
     elif test_type.lower() == 'ftp':
         check = ftp_test
+    elif test_type.lower() == 'minecraft':
+        check = minecraft_test
+    elif test_type.lower() == 'ssh':
+        check = ssh_test
+    elif test_type.lower() == 'subsonic':
+        check = subsonic_test
     else:
         print("%s is not a service type." % (test_type))
         return False
 
+    '''
     import psycopg2
     conn = psycopg2.connect("dbname='monitor'")
     cur = conn.cursor()
-
+    '''
     i = 0
-    while(i < 3):
-        time.sleep(random.randint(15,45))
-        if (check(server_info)):
+    while(True):
+        time.sleep(random.randint(2,5))
+        if (check(server_info, test_args)):
             print('Team %d - %s - Connected to %s %s.' % (team_num, service_name, test_type, server_info))
+            '''
             cur.execute("INSERT INTO events (team_num, check_name, passed, time) VALUES (%s, %s, %s, %s)", (team_num, service_name, True, datetime.datetime.now()))
             conn.commit()
+            '''
         else:
             print('Team %d - %s - Unable to connect to the service %s %s.' % (team_num, service_name, test_type, server_info))
+            '''
             cur.execute("INSERT INTO events (team_num, check_name, passed, time) VALUES (%s, %s, %s, %s)", (team_num, service_name, False, datetime.datetime.now()))
             conn.commit()
+            '''
         i += 1
 
+    '''
     cur.close()
     conn.close()
-
+    '''
 
 
 def team_check(team_num):
