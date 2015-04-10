@@ -2,7 +2,6 @@
 
 from urllib2 import urlopen
 import socket
-from sys import argv
 import struct
 from ftplib import FTP
 import random
@@ -12,6 +11,7 @@ import datetime
 import psycopg2
 import libsonic
 from mcstatus import MinecraftServer
+
 
 def tcp_test(server_info):
     cpos = server_info.find(':')
@@ -64,24 +64,28 @@ def dns_test(server_info):
 
     # wait for response
     try:
-        recvdata=s.recvfrom(1024)
-    except socket.error, e:
+        s.recvfrom(1024)
+    except Exception as e:
+        print e
         return False
 
     return True
+
 
 def ftp_test(server_info):
     cpos = server_info.find(':')
 
     ftp = FTP()
     try:
-        ftp.connect(server_info[:cpos],int(server_info[cpos+1:]),2)
-    except socket.error, e:
+        ftp.connect(server_info[:cpos],int(server_info[cpos+1:]), 2)
+    except Exception as e:
+        print e
         return False
 
     return True
 
-def subsonic_test(server_info, username, password, artist):
+
+def subsonic_test(server_info, (username, password, artist)):
     try:
         conn = libsonic.Connection(server_info, username, password)
         test_str = conn.getArtists().__str__()
@@ -101,6 +105,41 @@ def minecraft_test(server_info):
     except Exception as e:
         print e
         return False
+
+def long_term_monitoring(test_type, server_info, team_num, service_name):
+    if test_type.lower() == 'tcp':
+        check = tcp_test
+    elif test_type.lower() == 'http':
+        check = http_test
+    elif test_type.lower() == 'dns':
+        check = dns_test
+    elif test_type.lower() == 'ftp':
+        check = ftp_test
+    else:
+        print("%s is not a service type." % (test_type))
+        return False
+
+    import psycopg2
+    conn = psycopg2.connect("dbname='monitor'")
+    cur = conn.cursor()
+
+    i = 0
+    while(i < 3):
+        time.sleep(random.randint(15,45))
+        if (check(server_info)):
+            print('Team %d - %s - Connected to %s %s.' % (team_num, service_name, test_type, server_info))
+            cur.execute("INSERT INTO events (team_num, check_name, passed, time) VALUES (%s, %s, %s, %s)", (team_num, service_name, True, datetime.datetime.now()))
+            conn.commit()
+        else:
+            print('Team %d - %s - Unable to connect to the service %s %s.' % (team_num, service_name, test_type, server_info))
+            cur.execute("INSERT INTO events (team_num, check_name, passed, time) VALUES (%s, %s, %s, %s)", (team_num, service_name, False, datetime.datetime.now()))
+            conn.commit()
+        i += 1
+
+    cur.close()
+    conn.close()
+
+
 
 def team_check(team_num):
     Thread(target = long_term_monitoring, args = ("http", "http://www.google.com:8080", team_num, "UBUNTU WEB")).start()
