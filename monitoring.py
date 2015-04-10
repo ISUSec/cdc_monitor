@@ -26,14 +26,14 @@ def tcp_test(server_info):
 
 def http_test(server_info, (flag)):
     try:
-        socket.setdefaulttimeout(1)
-        data = urlopen(server_info, timeout=1).read()
+        socket.setdefaulttimeout(2)
+        data = urlopen(server_info, timeout=3).read()
         if flag in data:
             return True
         else:
             return False
-    except:
-        #print(e)
+    except Exception as e:
+        print e
         return False
 
 def buildDNSQuery(host):
@@ -102,10 +102,10 @@ def subsonic_test(server_info, (username, password, artist)):
         print e
         return False
 
-def minecraft_test(server_info):
+def minecraft_test(server_info, extra):
     try:
         server = MinecraftServer.lookup(server_info)
-        server.ping()
+        server.status()
         return True
     except Exception as e:
         print e
@@ -124,7 +124,7 @@ def ssh_test(server_info, (username, password, flag, file_name)):
         print e
         return False
 
-def long_term_monitoring(test_type, test_args, server_info, team_num, service_name):
+def long_term_monitoring(test_type, server_info, test_args, team_num, service_name):
     if test_type.lower() == 'tcp':
         check = tcp_test
     elif test_type.lower() == 'http':
@@ -171,11 +171,17 @@ def long_term_monitoring(test_type, test_args, server_info, team_num, service_na
     '''
 
 
-def team_check(team_num):
-    Thread(target = long_term_monitoring, args = ("http", "http://www.google.com:8080", team_num, "UBUNTU WEB")).start()
+def team_check(team_num, server_ip):
+    Thread(target = long_term_monitoring, args = ("http", "http://{0}/flag.html".format(server_ip), ('The World Is Carried By Turtles!'), team_num, "Web Service")).start()
+    Thread(target = long_term_monitoring, args = ("ftp", "{0}".format(server_ip), ('flag.txt'), team_num, "FTP Service")).start()
+    Thread(target = long_term_monitoring, args = ("minecraft", "{0}".format(server_ip), ("extra"), team_num, "Minecraft Service")).start()
+    Thread(target = long_term_monitoring, args = ("ssh", "{0}".format(server_ip), ('joe', 'dragons', 'Here There Be Dragons!', 'flag.txt'), team_num, "SSH Service") ).start()
+    Thread(target = long_term_monitoring, args = ("subsonic", "http://{0}".format(server_ip), ('subsonic', 'Subsonic1', 'Jonathan Coulton'), team_num, "Subsonic Service") ).start()
+    '''
     Thread(target = long_term_monitoring, args = ("http", "http://www.google.com:80", team_num, "IIS WEB")).start()
     Thread(target = long_term_monitoring, args = ("dns", "localhost:53", team_num, "DNS")).start()
     Thread(target = long_term_monitoring, args = ("ftp", "localhost:21", team_num, "FTP")).start()
+    '''
 
 
 def server_test(test_type, server_info):
