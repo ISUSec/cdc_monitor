@@ -7,11 +7,12 @@ def getChecksPerTeam(team_num):
     conn = psycopg2.connect("dbname='monitor'")
     cur = conn.cursor()
 
-    cur.execute("select check_name, passed, max(time) from events where team_num = '%s' group by check_name, passed;", (team_num,))
+    # cur.execute("select check_name, passed, max(time) from events where team_num = '%s' group by check_name, passed;", (team_num,))
+    cur.execute("SELECT DISTINCT ON (check_name) check_name, passed, time FROM events where team_num = '%s' ORDER BY check_name, time DESC;", (team_num,))
     results = cur.fetchall()
 
     cur.close()
-    conn.close()  
+    conn.close()
 
     return results
 

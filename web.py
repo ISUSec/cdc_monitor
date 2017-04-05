@@ -18,6 +18,7 @@ def team1():
         team = 1,
         checks = common.getChecksPerTeam(1))
 
+'''
 @app.route('/2')
 def team1():
 	return render_template("./page.html",
@@ -41,6 +42,6 @@ def team1():
 	return render_template("./page.html",
         team = 1,
         checks = common.getChecksPerTeam(5))
+'''
 
-
-app.run(debug = True)
+app.run(debug = True, host='0.0.0.0')

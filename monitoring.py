@@ -143,32 +143,24 @@ def long_term_monitoring(test_type, server_info, test_args, team_num, service_na
         print("%s is not a service type." % (test_type))
         return False
 
-    '''
     import psycopg2
     conn = psycopg2.connect("dbname='monitor'")
     cur = conn.cursor()
-    '''
     i = 0
     while(True):
         time.sleep(random.randint(2,5))
         if (check(server_info, test_args)):
             print('Team %d - %s - Connected to %s %s.' % (team_num, service_name, test_type, server_info))
-            '''
             cur.execute("INSERT INTO events (team_num, check_name, passed, time) VALUES (%s, %s, %s, %s)", (team_num, service_name, True, datetime.datetime.now()))
             conn.commit()
-            '''
         else:
             print('Team %d - %s - Unable to connect to the service %s %s.' % (team_num, service_name, test_type, server_info))
-            '''
             cur.execute("INSERT INTO events (team_num, check_name, passed, time) VALUES (%s, %s, %s, %s)", (team_num, service_name, False, datetime.datetime.now()))
             conn.commit()
-            '''
         i += 1
 
-    '''
     cur.close()
     conn.close()
-    '''
 
 
 def team_check(team_num, server_ip):
@@ -206,12 +198,12 @@ if __name__ == '__main__':
     cur.execute("select exists(select * from information_schema.tables where table_name=%s)", ('events',))
     if (not cur.fetchone()[0]):
         print("Table missing!")
-        cur.execute("CREATE TABLE events (id serial PRIMARY KEY, team_num integer, check_name char(20), passed boolean, time timestamp);")
+        cur.execute("CREAT TABLE events (id serial PRIMARY KEY, team_num integer, check_name char(20), passed boolean, time timestamp);")
 
     conn.commit()
     cur.close()
     conn.close()
-    team_check(1)
+    team_check(1, '192.168.200.138')
     #team_check(2)
 
 
